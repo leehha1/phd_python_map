@@ -9,6 +9,7 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView
 from matplotlib import colors
 from qtrangeslider.qtcompat import QtCore
 
+from .coordinates_simplification import CoordinateSimplificationWidget
 from ..from_ui import Ui_MainWindow
 
 from PyQt5 import QtWidgets
@@ -34,6 +35,8 @@ class StartWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.cmap = plt.get_cmap('viridis')
         self.init_RS_years()
         self.TE_warning.setTextColor(QColor(255, 0, 0))
+        coordinate_simplification = CoordinateSimplificationWidget()
+        self.verticalLayout.addWidget(coordinate_simplification)
         atexit.register(self.clean_temp_files)
 
     def clean_temp_files(self):
