@@ -110,7 +110,48 @@ class StartWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def _read_csv(self):
         self.original_df = pd.read_csv(self.file_path)
+        self._prepare_df()
 
+    def _prepare_df(self):
+
+        lat_col, lng_col = self.find_lat_lng_columns(self.original_df)
+
+        self.original_df.dropna(subset=['founded', lat_col, lng_col], inplace=True)
+
+        def convert_column(column):
+            try:
+                return pd.to_numeric(column, errors='coerce')
+            except ValueError:
+                print('----------')
+                return column
+
+        self.original_df['founded'] = convert_column(self.original_df['founded'])
+        self.original_df[lat_col] = convert_column(self.original_df[lat_col])
+        self.original_df[lng_col] = convert_column(self.original_df[lng_col])
+
+    def find_lat_lng_columns(self, df):
+        latitude_columns = ['latitude', 'lat', 'Latitude', 'Lat']
+        longitude_columns = ['longitude', 'lng', 'Longitude', 'Lng']
+        lat_col = None
+        lng_col = None
+        for col in df.columns:
+            if col in latitude_columns:
+                lat_col = col
+            if col in longitude_columns:
+                lng_col = col
+        if lat_col is None or lng_col is None:
+            raise ValueError("Could not find columns for latitude and longitude")
+        return lat_col, lng_col
+
+    def find_name_columns(self, df):
+        name_columns = ['city', 'name', 'name.uk']
+        name_col = None
+        for col in df.columns:
+            if col in name_columns:
+                name_col = col
+        if name_col is None:
+            raise ValueError("Could not find columns for name")
+        return name_col
 
     def init_map(
             self,
@@ -132,12 +173,15 @@ class StartWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         len_df = len(df.axes[0])
         progress_dialog = self.start_loading(pr_max=len_df)
 
+        lat_col, lng_col = self.find_lat_lng_columns(df)
+        name_col = self.find_name_columns(df)
+
         for index, row in df.iterrows():
-            tooltip_content = f'<div style="font-size: 18px; font-weight: bold;">{row["city"]} - {row["founded"]}</div>'
+            tooltip_content = f'<div style="font-size: 18px; font-weight: bold;">{row[name_col]} - {row["founded"]}</div>'
 
             folium.CircleMarker(
-                location=(row['latitude'], row['longitude']),
-                radius=2,
+                location=(row[lat_col], row[lng_col]),
+                radius=4,
                 color=get_color(row['founded']),
                 fill=True,
                 fill_color=get_color(row['founded']),
